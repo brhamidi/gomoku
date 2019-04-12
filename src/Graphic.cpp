@@ -117,7 +117,7 @@ std::pair<int, int> Graphic::getEvent(Grid grid, int player)
 				int x = event.mouseButton.x / (this->_windowSizeX / this->_size);
 				int y = event.mouseButton.y / (this->_windowSizeY / this->_size);
 				if (x < this->_size && x >= 0 && y < this->_size && y >= 0 && !grid[y][x])
-					return (std::make_pair(x, y));
+					return (std::make_pair(y, x));
 			}
 		}
 		else if (event.type == sf::Event::Resized)
