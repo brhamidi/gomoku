@@ -7,8 +7,7 @@ CXXFLAGS	+= -lsfml-system -lsfml-window -lsfml-graphics
 SRC_PATH	= src/
 
 INCLUDES	= -I include/
-INCLUDES	+= -I /usr/include/opencv4
-INCLUDES	+= -I ~/.brew/include/opencv4 -I ~/.brew/include/
+INCLUDES	+= -I ~/.brew/include/
 
 OBJ		= main.o			\
 		  Graphic.o
