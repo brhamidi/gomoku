@@ -96,16 +96,38 @@ bool	isWin(Grid &grid, std::pair<int, int> pos)
 		return true;
 	return false;
 }
+#include <algorithm>
+int	distance(const Grid & grid, int & distance)
+{
+	int	dy;
+	int	dx;
+
+	if (distance == 9) return distance;
+	for (int y = 0; y < 19; ++y) {
+		for (int x = 0; x < 19; ++x) {
+			if (grid[y][x] != 0) {
+				dy = std::abs(9 - y) + 2;
+				dx = std::abs(9 - x) + 2;
+				distance = std::max(distance, std::max(dy, dx));
+			}
+		}
+	}
+	if (distance > 9) return 9;
+	if (distance < 2) return 2;
+	return distance;
+}
 
 int main()
 {
 	Graphic		g;
 	Grid 		grid(19, std::vector<int>(19, 0));
-	int			player = 1;
+	int		player = 1;
+	int		d = 2;
 
 	while (1)
 	{
 		g.display_grid(grid);
+		std::cout << "distance " << distance(grid, d) << std::endl;
 		std::pair<int,int> e = g.getEvent(grid, player);
 		if (e.second == -1)
 			break ;
