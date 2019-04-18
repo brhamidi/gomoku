@@ -97,13 +97,35 @@ bool	isWin(Grid &grid, std::pair<int, int> pos)
 	return false;
 }
 
+#include <algorithm>
+
+int	distance(const Grid & grid, int & distance)
+{
+	int	dy;
+	int	dx;
+
+	if (distance == 9) return distance;
+	for (int y = 0; y < 19; ++y) {
+		for (int x = 0; x < 19; ++x) {
+			if (grid[y][x] != 0) {
+				dy = std::abs(9 - y) + 2;
+				dx = std::abs(9 - x) + 2;
+				distance = std::max(distance, std::max(dy, dx));
+			}
+		}
+	}
+	if (distance > 9) return 9;
+	if (distance < 2) return 2;
+	return distance;
+}
+
 int	h(Grid &grid)
 {
 	static int	i = -1;
 	int		tab[] = {-1, 3, 5, 1, -6, -4, 0, 9};
 	static int	qwe = 0;
 
-//	if (!(qwe % 100000))
+	if (!(qwe % 100000))
 		std::cout << qwe << " h" << std::endl;
 	++qwe;
 	if (i >= 7)
@@ -111,78 +133,22 @@ int	h(Grid &grid)
 	return -1;
 }
 
-std::pair<int, Grid >	minmax(Grid &grid, int depth, bool maximizingPlayer, int, int);
+std::pair<int, Grid >	minmax(Grid &grid, int depth, bool maximizingPlayer, int, int, int);
 
-std::pair<int, Grid>	getfirst(Grid &grid, int depth, bool maximizingPlayer, int min, int max, std::pair<int, Grid> &res, int &y, int &x)
+std::pair<int, Grid>	getfirst(Grid &grid, int depth, bool maximizingPlayer, int min, int max, std::pair<int, Grid> &res, int &y, int &x, int d)
 {
-	for(y = 0; y < grid.size(); ++y)
+	for(y = grid.size() / 2 - d; y < grid.size() / 2 + d; ++y)
 	{
-		for(x = 0; x < grid.size(); ++x)
+		for(x = grid.size() / 2 - d; x < grid.size() / 2 + d; ++x)
 		{
 			if (grid[y][x] == 0)
-				return minmax(grid, depth, !maximizingPlayer, min, max);
+				return minmax(grid, depth, !maximizingPlayer, min, max, d);
 		}
 	}
 	return res;
 }
 
-std::pair<int, Grid >	getmaxmin(Grid &grid, int depth, bool maximizingPlayer, int max, int min)
-{
-	std::pair<int, Grid >	res = std::make_pair(std::numeric_limits<int>::min(), grid);
-	std::pair<int, Grid>	tmp;
-
-	int	y, x;
-	static int	i = -1;
-
-	res = getfirst(grid, depth - 1, maximizingPlayer, max, min, res, y, x);
-	if (res.first == std::numeric_limits<int>::max())
-		return res;
-	(maximizingPlayer ? max : min) = res.first;
-	if (min <= max)
-	{
-		std::cout << "breaking\n";
-		return res;
-	}
-	for(; y < grid.size(); ++y)
-	{
-		for(; x < grid.size(); ++x)
-		{
-			if (grid[y][x] == 0)
-			{
-				tmp = minmax(grid, depth - 1, !maximizingPlayer, max, min);
-				std::cout << "loop\n";
-				if (maximizingPlayer)
-				{
-					res = res.first > tmp.first ? res : tmp;
-					max = res.first;
-					if (min <= max)
-					{
-						std::cout << "breaking\n";
-						return res;
-					}
-					else
-						std::cout << max << " " << min << " depth: " << depth - 1 << " 1 HERE\n";
-				}
-				else
-				{
-					res = res.first < tmp.first ? res : tmp;
-					min = res.first;
-					if (min <= max)
-					{
-						std::cout << "breaking\n";
-						return res;
-					}
-					else
-						std::cout << max << " " << min << " depth: " << depth - 1 << " 2 HERE\n";
-				}
-			}
-		}
-		x = 0;
-	}
-	return res;
-}
-
-std::pair<int, Grid >	minmax(Grid &grid, int depth, bool maximizingPlayer, int max, int min)
+std::pair<int, Grid >	minmax(Grid &grid, int depth, bool maximizingPlayer, int max, int min, int d)
 {
 	if (depth <= 0)
 		return std::make_pair(h(grid), grid);
@@ -190,37 +156,38 @@ std::pair<int, Grid >	minmax(Grid &grid, int depth, bool maximizingPlayer, int m
 	std::pair<int, Grid>	tmp;
 
 	int	y, x;
+	distance(grid, d);
 	static int	i = -1;
 
-	res = getfirst(grid, depth - 1, maximizingPlayer, max, min, res, y, x);
+	res = getfirst(grid, depth - 1, maximizingPlayer, max, min, res, y, x, d);
 	if (res.first == std::numeric_limits<int>::max())
 		return res;
 	(maximizingPlayer ? max : min) = res.first;
 	if (min <= max)
 	{
-		std::cout << max << " " << min << "\n";
-		std::cout << "breaking\n";
+//		std::cout << max << " " << min << "\n";
+//		std::cout << "breaking\n";
 		return res;
 	}
-	std::cout << "qweqweqweasd max: " << max << " min: " << min << "\n";
-	for(; y < grid.size(); ++y)
+//	std::cout << "qweqweqweasd max: " << max << " min: " << min << "\n";
+	for(; y < grid.size() / 2 + d; ++y)
 	{
-		for(; x < grid.size(); ++x)
+		for(; x < grid.size() / 2 + d; ++x)
 		{
 			if (grid[y][x] == 0)
 			{
-				tmp = minmax(grid, depth - 1, !maximizingPlayer, max, min);
+				tmp = minmax(grid, depth - 1, !maximizingPlayer, max, min, d);
 				if (maximizingPlayer)
 				{
 					res = res.first > tmp.first ? res : tmp;
 					max = res.first;
 					if (min <= max)
 					{
-						std::cout << "breaking 2 \n";
+//						std::cout << "breaking 2 \n";
 						return res;
 					}
-					else
-						std::cout << "max: " << max << " min: " << min << "   1\n";
+			//		else
+//						std::cout << "max: " << max << " min: " << min << "   1\n";
 				}
 				else
 				{
@@ -228,15 +195,15 @@ std::pair<int, Grid >	minmax(Grid &grid, int depth, bool maximizingPlayer, int m
 					min = res.first;
 					if (min <= max)
 					{
-						std::cout << "breaking 2\n";
+//						std::cout << "breaking 2\n";
 						return res;
 					}
-					else
-						std::cout << "max: " << max << " min: " << min << "   2\n";
+				//	else
+//						std::cout << "max: " << max << " min: " << min << "   2\n";
 				}
 			}
 		}
-		x = 0;
+		x = grid.size() / 2 - d;
 	}
 	return res;
 }
@@ -245,11 +212,13 @@ int main()
 {
 	Graphic		g;
 	Grid 		grid(19, std::vector<int>(19, 0));
-	int			player = 1;
+	int		player = 1;
+	int		d = 2;
 
 /*	while (1)
 	{
 		g.display_grid(grid);
+		std::cout << "distance " << distance(grid, d) << std::endl;
 		std::pair<int,int> e = g.getEvent(grid, player);
 		if (e.second == -1)
 			break ;
@@ -260,5 +229,5 @@ int main()
 		if (isWin(grid, e))
 			std::cout << "STRIKE\n";
 	}*/
-	std::cout << minmax(grid, 3, true, std::numeric_limits<int>::min(), std::numeric_limits<int>::max()).first << "\n";
+	std::cout << minmax(grid, 10, true, std::numeric_limits<int>::min(), std::numeric_limits<int>::max(), 2).first << "\n";
 }
