@@ -24,7 +24,6 @@ Graphic::Graphic(): _size(19), _windowDefaultSize(1000), _windowSizeX(1000), _wi
 {
 	if (!_fill_textures_sprites())
 		throw std::runtime_error(std::string("Error while loading texture, please make sure 'grid.png', 'black.png' and 'white.png' exist/got permissions"));
-	std::cout << "ok\n";
 	if (!(this->_window = new sf::RenderWindow(sf::VideoMode(this->_windowSizeX, this->_windowSizeY), "Gomoku")))
 		throw std::runtime_error(std::string("Error while loading SFML window"));
 	if (!(this->_font.loadFromFile("font.ttf")))

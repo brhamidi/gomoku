@@ -1,4 +1,15 @@
 #include "Graphic.hpp"
+#include <unordered_set>
+#include <algorithm>
+
+class PairHash {
+	public:
+		size_t operator()(const std::pair<int, int>& pos) const {
+			return pos.first * 100 + pos.second;
+		}
+};
+
+Graphic		g;
 
 bool	isCaptured(Grid &grid, std::pair<int, int> pos, int x, int y, int ennemy)
 {
@@ -97,8 +108,6 @@ bool	isWin(Grid &grid, std::pair<int, int> pos)
 	return false;
 }
 
-#include <algorithm>
-
 int	distance(const Grid & grid, int & distance)
 {
 	int	dy;
@@ -119,99 +128,81 @@ int	distance(const Grid & grid, int & distance)
 	return distance;
 }
 
+int qwer;
 int	h(Grid &grid)
 {
 	static int	i = -1;
 	int		tab[] = {-1, 3, 5, 1, -6, -4, 0, 9};
 	static int	qwe = 0;
 
-	if (!(qwe % 100000))
+	if (!(qwe % 10000))
+	{
 		std::cout << qwe << " h" << std::endl;
+		g.display_grid(grid);
+	}
+	qwer = qwe;
 	++qwe;
 	if (i >= 7)
 		i = -1;
 	return -1;
 }
 
-std::pair<int, Grid >	minmax(Grid &grid, int depth, bool maximizingPlayer, int, int, int);
+int	minmax(Grid &grid, int depth, bool maximizingPlayer, int max, int min, std::unordered_set<std::pair<int, int>, PairHash> &set);
 
-std::pair<int, Grid>	getfirst(Grid &grid, int depth, bool maximizingPlayer, int min, int max, std::pair<int, Grid> &res, int &y, int &x, int d)
+std::pair<int, std::pair<int, int> >	setUnorderedSet(Grid &grid, int depth, bool maximizingPlayer, int max, int min, std::unordered_set<std::pair<int, int>, PairHash> &set, int x, int y)
 {
-	for(y = grid.size() / 2 - d; y < grid.size() / 2 + d; ++y)
-	{
-		for(x = grid.size() / 2 - d; x < grid.size() / 2 + d; ++x)
-		{
-			if (grid[y][x] == 0)
-				return minmax(grid, depth, !maximizingPlayer, min, max, d);
-		}
-	}
+	std::list<std::pair<int, int> > l;
+
+	grid[y][x] = maximizingPlayer ? 1 : 2;
+	for(int i = y - 1; i < y + 1; i++)
+		for(int j = x - 1; j < x + 1; j++)
+			if (i >= 0 && j >= 0 && i < 19 && j < 19 && !grid[i][j])
+				if (set.insert(std::make_pair(i, j)).second)
+					l.push_front(std::make_pair(i, j));
+	std::pair<int, std::pair<int, int> >	res = std::make_pair(minmax(grid, depth, maximizingPlayer, max, min, set),
+			std::make_pair(y, x));
+	for(auto pos: l)
+		set.erase(pos);
+	grid[y][x] = 0;
 	return res;
 }
 
-std::pair<int, Grid >	minmax(Grid &grid, int depth, bool maximizingPlayer, int max, int min, int d)
+int		minmax(Grid &grid, int depth, bool maximizingPlayer, int max, int min, std::unordered_set<std::pair<int, int>, PairHash> &set)
 {
 	if (depth <= 0)
-		return std::make_pair(h(grid), grid);
-	std::pair<int, Grid >	res = std::make_pair(std::numeric_limits<int>::min(), grid);
-	std::pair<int, Grid>	tmp;
+		return h(grid);
+	int	res = std::numeric_limits<int>::min();
+	int	tmp;
+	bool i = false;
 
-	int	y, x;
-	distance(grid, d);
-	static int	i = -1;
-
-	res = getfirst(grid, depth - 1, maximizingPlayer, max, min, res, y, x, d);
-	if (res.first == std::numeric_limits<int>::max())
-		return res;
-	(maximizingPlayer ? max : min) = res.first;
-	if (min <= max)
+	for(std::pair<int, int> p: set)
 	{
-//		std::cout << max << " " << min << "\n";
-//		std::cout << "breaking\n";
-		return res;
-	}
-//	std::cout << "qweqweqweasd max: " << max << " min: " << min << "\n";
-	for(; y < grid.size() / 2 + d; ++y)
-	{
-		for(; x < grid.size() / 2 + d; ++x)
+		if (grid[p.first][p.second] == 0)
 		{
-			if (grid[y][x] == 0)
+			tmp = setUnorderedSet(grid, depth - 1, !maximizingPlayer, max, min, set, p.second, p.first).first;
+			if (i)
 			{
-				tmp = minmax(grid, depth - 1, !maximizingPlayer, max, min, d);
-				if (maximizingPlayer)
-				{
-					res = res.first > tmp.first ? res : tmp;
-					max = res.first;
-					if (min <= max)
-					{
-//						std::cout << "breaking 2 \n";
-						return res;
-					}
-			//		else
-//						std::cout << "max: " << max << " min: " << min << "   1\n";
-				}
-				else
-				{
-					res = res.first < tmp.first ? res : tmp;
-					min = res.first;
-					if (min <= max)
-					{
-//						std::cout << "breaking 2\n";
-						return res;
-					}
-				//	else
-//						std::cout << "max: " << max << " min: " << min << "   2\n";
-				}
+				res = maximizingPlayer ? (res > tmp ? res : tmp) : (res < tmp ? res : tmp);
+				(maximizingPlayer ? max : min) = res;
+				if (min <= max)
+					return res;
+			}
+			else
+			{
+				res = tmp;
+				i = true;
 			}
 		}
-		x = grid.size() / 2 - d;
 	}
 	return res;
 }
 
 int main()
 {
-	Graphic		g;
-	Grid 		grid(19, std::vector<int>(19, 0));
+	Grid 		grid(19, std::vector<char>(19, 0));
+	
+	//g.getEvent(grid, 1);
+	grid[9][9] = 2;
 	int		player = 1;
 	int		d = 2;
 
@@ -229,5 +220,7 @@ int main()
 		if (isWin(grid, e))
 			std::cout << "STRIKE\n";
 	}*/
-	std::cout << minmax(grid, 10, true, std::numeric_limits<int>::min(), std::numeric_limits<int>::max(), 2).first << "\n";
+	std::unordered_set<std::pair<int, int>, PairHash> set;
+	std::cout << setUnorderedSet(grid, 10, true, std::numeric_limits<int>::min(), std::numeric_limits<int>::max(), set, 9, 9).first << "\n";
+	std::cout << qwer << "\n";
 }

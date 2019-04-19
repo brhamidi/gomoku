@@ -11,7 +11,7 @@
 # include <iostream>
 # include <unistd.h>
 
-typedef std::vector<std::vector<int> > Grid;
+typedef std::vector<std::vector<char> > Grid;
 
 class Graphic
 {
