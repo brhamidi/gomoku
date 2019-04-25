@@ -11,18 +11,17 @@ class PairHash {
 
 Graphic		g;
 
-bool	isCaptured(Grid &grid, std::pair<int, int> pos, int x, int y, int ennemy)
+void	isCaptured(Grid &grid, std::pair<int, int> pos, int x, int y, int ennemy,
+		std::list<std::pair<int, int> > &list)
 {
 	if (grid[pos.first + y][pos.second + x] == grid[pos.first][pos.second]
-	&& grid[pos.first + y % 2][pos.second + x % 2] == ennemy
-	&& grid[pos.first + y % 2 ][pos.second + x % 2] ==
-	grid[pos.first + (y % 2) * 2][pos.second + (x % 2) * 2])
+	&& grid[pos.first + (y & 1)][pos.second + (x & 1)] == ennemy
+	&& grid[pos.first + (y & 1) ][pos.second + (x & 1)] ==
+	grid[pos.first + ((y & 1) << 1)][pos.second + ((x & 1) << 1)])
 	{
-		grid[pos.first + y % 2][pos.second + x % 2] = 0;
-		grid[pos.first + (y % 2) * 2][pos.second + (x % 2) * 2] = 0;
-		return true;
+		list.push_front(std::make_pair<int, int>(pos.first + (y & 1), pos.second + (x & 1)));
+		list.push_front(std::make_pair<int, int>(pos.first + ((y & 1) << 1), pos.second + ((x & 1) << 1)));
 	}
-	return false;
 }
 
 bool	checkThreeLine(std::vector<char> line)
@@ -63,9 +62,9 @@ bool	checkThreeLine(std::vector<char> line)
 
 bool	isDoubleThree(Grid &grid, std::pair<int, int> pos, int player)
 {
-	int		i = 0;
-	int		three = 0;
-	int		vpos = 4;
+	int					i = 0;
+	int					three = 0;
+	int					vpos = 4;
 	std::vector<char>	line(9, 3);
 
 	line[4] = player;
@@ -79,7 +78,6 @@ bool	isDoubleThree(Grid &grid, std::pair<int, int> pos, int player)
 		line[++vpos] = grid[pos.first + i][pos.second];
 	
 	three += checkThreeLine(line) ? 1 : 0;
-
 	line.assign(9, 3);
 	i = 0;
 	vpos = 4;
@@ -129,33 +127,29 @@ bool	isDoubleThree(Grid &grid, std::pair<int, int> pos, int player)
 	return (three == 2 ? true : false);
 }
 
-bool	capture(Grid &grid, std::pair<int, int> pos, int ennemy)
+void	capture(Grid &grid, std::pair<int, int> pos, int ennemy,
+		std::list<std::pair<int, int> > &list)
 {
-	bool	res = false;
-
 	if (pos.first - 3 >= 0)
 	{
 		if (pos.second - 3 >= 0)
-		{
-			res |= isCaptured(grid, pos, -3, -3, ennemy);
-		}
-		res |= isCaptured(grid, pos, 0, -3, ennemy);
+			isCaptured(grid, pos, -3, -3, ennemy, list);
+		isCaptured(grid, pos, 0, -3, ennemy, list);
 		if (pos.second + 3 < 19)
-			res |= isCaptured(grid, pos, 3, -3, ennemy);
+			isCaptured(grid, pos, 3, -3, ennemy, list);
 	}
 	if (pos.first + 3 < 19)
 	{
 		if (pos.second - 3 >= 0)
-			res |= isCaptured(grid, pos, -3, 3, ennemy);
-		res |= isCaptured(grid, pos, 0, 3, ennemy);
+			isCaptured(grid, pos, -3, 3, ennemy, list);
+		isCaptured(grid, pos, 0, 3, ennemy, list);
 		if (pos.second + 3 < 19)
-			res |= isCaptured(grid, pos, 3, 3, ennemy);
+			isCaptured(grid, pos, 3, 3, ennemy, list);
 	}
 	if (pos.second - 3 >= 0)
-		res |= isCaptured(grid, pos, -3, 0, ennemy);
+		isCaptured(grid, pos, -3, 0, ennemy, list);
 	if (pos.second + 3 < 19)
-		res |= isCaptured(grid, pos, 3, 0, ennemy);
-	return res;
+		isCaptured(grid, pos, 3, 0, ennemy, list);
 }
 
 bool	isWin(Grid &grid, std::pair<int, int> pos)
@@ -192,7 +186,7 @@ bool	isWin(Grid &grid, std::pair<int, int> pos)
 			&& grid[pos.first - i][pos.second - i] == player && count < 5)
 		++count;
 	i = 0;
-	while (pos.second + ++i >= 0 && pos.first + i < 19
+	while (pos.second + ++i < 19 && pos.first + i < 19
 			&& grid[pos.first + i][pos.second + i] == player && count < 5)
 		++count;
 	if (count == 5)
@@ -204,7 +198,7 @@ bool	isWin(Grid &grid, std::pair<int, int> pos)
 			&& grid[pos.first + i][pos.second - i] == player && count < 5)
 		++count;
 	i = 0;
-	while (pos.second + ++i >= 0 && pos.first - i >= 0
+	while (pos.second + ++i < 19 && pos.first - i >= 0
 			&& grid[pos.first - i][pos.second + i] == player && count < 5)
 		++count;
 	if (count == 5)
@@ -251,25 +245,33 @@ int	h(Grid &grid)
 	return -1;
 }
 
-int	minmax(Grid &grid, int depth, bool maximizingPlayer, int max, int min, std::unordered_set<std::pair<int, int>, PairHash> &set);
+int	minmax(Grid &grid, int depth, bool maximizingPlayer, int max, int min,
+	std::unordered_set<std::pair<int, int>, PairHash> &set, std::list<std::pair<int, int> > &list);
 
-std::pair<int, std::pair<int, int> >	setUnorderedSet(Grid &grid, int depth, bool maximizingPlayer, int max, int min, std::unordered_set<std::pair<int, int>, PairHash> &set, int x, int y)
+std::pair<int, std::pair<int, int> >	setUnorderedSet(Grid &grid, int depth,
+		bool maximizingPlayer, int max, int min, std::unordered_set<std::pair<int, int>,
+		PairHash> &set, int x, int y, std::list<std::pair<int, int> > &list)
 {
 	std::list<std::pair<int, int> > l;
 
 	for(int i = y - 1; i < y + 1; i++)
 		for(int j = x - 1; j < x + 1; j++)
-			if (i >= 0 && j >= 0 && i < 19 && j < 19 && !grid[i][j])
+			if (i >= 0 && j >= 0 && i < 19 && j < 19/* && !grid[i][j]*/)
 				if (set.insert(std::make_pair(i, j)).second)
 					l.push_front(std::make_pair(i, j));
-	std::pair<int, std::pair<int, int> >	res = std::make_pair(minmax(grid, depth, maximizingPlayer, max, min, set),
+	std::pair<int, std::pair<int, int> >	res = std::make_pair(minmax(grid,
+				depth, maximizingPlayer, max, min, set, list),
 			std::make_pair(y, x));
-	for(auto pos: l)
+	for(std::pair<int, int> pos: l)
+	{
 		set.erase(pos);
+		l.pop_front();
+	}
 	return res;
 }
 
-int		minmax(Grid &grid, int depth, bool maximizingPlayer, int max, int min, std::unordered_set<std::pair<int, int>, PairHash> &set)
+int		minmax(Grid &grid, int depth, bool maximizingPlayer, int max, int min,
+		std::unordered_set<std::pair<int, int>, PairHash> &set, std::list<std::pair<int, int> > &list)
 {
 	if (depth <= 0)
 		return h(grid);
@@ -282,16 +284,25 @@ int		minmax(Grid &grid, int depth, bool maximizingPlayer, int max, int min, std:
 		if (grid[p.first][p.second] == 0)
 		{
 			grid[p.first][p.second] = maximizingPlayer ? 1 : 2;
-			if (capture(grid, p, maximizingPlayer ? 2 : 1) ||
-					!isDoubleThree(grid, p, maximizingPlayer ? 1 : 2))
+			capture(grid, p, maximizingPlayer ? 2 : 1, list);
+			if (list.size() || !isDoubleThree(grid, p, maximizingPlayer ? 1 : 2))
 			{
-				tmp = setUnorderedSet(grid, depth - 1, !maximizingPlayer, max, min, set, p.second, p.first).first;
+				for(std::pair<int, int> lp: list)
+					grid[lp.first][lp.second] = 0;
+				tmp = setUnorderedSet(grid, depth - 1, !maximizingPlayer, max,
+						min, set, p.second, p.first, list).first;
+				for(std::pair<int, int> lp: list)
+				{
+					grid[lp.first][lp.second] = maximizingPlayer ? 2 : 1;
+					list.pop_front();
+				}
 				grid[p.first][p.second] = 0;
 				if (i)
 				{
 					res = maximizingPlayer ? (res > tmp ? res : tmp) : (res < tmp ? res : tmp);
 					(maximizingPlayer ? max : min) = res;
-					if (min <= max || max == std::numeric_limits<int>::max() || min == std::numeric_limits<int>::min())
+					if (min <= max || max == std::numeric_limits<int>::max() ||
+							min == std::numeric_limits<int>::min())
 						return res;
 				}
 				else
@@ -315,7 +326,7 @@ int main()
 	int		player = 1;
 	int		d = 2;
 
-	while (1)
+/*	while (1)
 	{
 		g.display_grid(grid);
 		std::pair<int,int> e = g.getEvent(grid, player);
@@ -323,14 +334,15 @@ int main()
 			break ;
 		std::cout << "x: " << e.second << " y: " << e.first << std::endl;
 		grid[e.first][e.second] = player;
-		if(!capture(grid, e, player == 1 ? 2 : 1) && isDoubleThree(grid, e, player) )
+		if(isDoubleThree(grid, e, player) )
 			grid[e.first][e.second] = 0;
 		else
 			player = player == 1 ? 2 : 1;
 		if (isWin(grid, e))
 			std::cout << "STRIKE\n";
-	}
+	}*/
+	std::list<std::pair<int, int> > list;
 	std::unordered_set<std::pair<int, int>, PairHash> set;
-	std::cout << setUnorderedSet(grid, 10, true, std::numeric_limits<int>::min(), std::numeric_limits<int>::max(), set, 9, 9).first << "\n";
+	std::cout << setUnorderedSet(grid, 10, true, std::numeric_limits<int>::min(), std::numeric_limits<int>::max(), set, 9, 9, list).first << "\n";
 	std::cout << qwer << "\n";
 }
